@@ -2,6 +2,8 @@ package com.emirozturk.survivorbird;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.TextureLoader;
+import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -24,24 +26,27 @@ public class SurvivorBird extends ApplicationAdapter {
 	Random random;
 	Circle birdCircle;
 	Circle[] enemyCircle1, enemyCircle2, enemyCircle3;
-	BitmapFont font, font2;
+	BitmapFont scoreFont, gameOverFont;
 	GameState gameState = GameState.restart;
-	//AssetManager assetManager;
+	boolean loadingFinished;
+	AssetManager assetManager;
+	String[] backgrounds = {"background1.png", "background2.png","background3.png","background4.png","background5.png","background6.png"};
 
 	enum GameState {start, restart, end}
 
 	//Oyun açıldığında olacak olaylar.
 	@Override public void create() {
+		loadingFinished = false;
+		assetManager = new AssetManager();
+		for (String item : backgrounds) {
+			assetManager.load(item, Texture.class);
+		}
+
 		batch = new SpriteBatch();
-		background = new Texture("background1.png");
 		bird = new Texture("bird1.png");
 		enemy1 = new Texture("enemy1.png");
 		enemy2 = new Texture("enemy1.png");
 		enemy3 = new Texture("enemy1.png");
-		/*assetManager = new AssetManager();
-		assetManager.load("background1.png", Texture.class);
-		assetManager.load("background2.png", Texture.class);
-		background = assetManager.get("background1.png", Texture.class);*/
 
 		//Ekran genişliği ve yüksekliği alınır.
 		width = Gdx.graphics.getWidth();
@@ -58,30 +63,35 @@ public class SurvivorBird extends ApplicationAdapter {
 		enemyCircle1 = new Circle[numberOfEnemies];
 		enemyCircle2 = new Circle[numberOfEnemies];
 		enemyCircle3 = new Circle[numberOfEnemies];
-		font = new BitmapFont();
-		font.setColor(Color.WHITE);
-		font.getData().setScale(7);
 
-		font2 = new BitmapFont();
-		font2.setColor(Color.RED);
-		font2.getData().setScale(8);
-
+		scoreFont = new BitmapFont();
+		scoreFont.setColor(Color.WHITE);
+		scoreFont.getData().setScale(7);
+		gameOverFont = new BitmapFont();
+		gameOverFont.setColor(Color.RED);
+		gameOverFont.getData().setScale(8);
 		setFirstValue();
+
+		assetManager.setLoader(Texture.class, new TextureLoader(new InternalFileHandleResolver()));
+		assetManager.finishLoading(); // This blocks until all assets are loaded
+		loadingFinished = true;
 	}
 
 	//Oyun devam ettiği sürece devamlı çağırılan bir metod.
 	@Override public void render() {
+		if (!loadingFinished) {
+			// Render a loading screen, progress bar, etc.
+			// Optionally, you can update a progress bar based on assetManager.getProgress()
+			return;
+		}
 		batch.begin();
 		//Arka planı ve kuşu ekrana çizer.
-		batch.draw(background, 0,0, width, height);
+		chanceBackground();
 		batch.draw(bird, birdX, birdY, heroWidth, heroHeight);
 
 		if (gameState == GameState.start) {
 			//Oyun başladıysa
 			scoreIncrease();
-			/*if (score >= 10) {
-				background = new Texture("background2.png");
-			}*/
 			for (short i = 0; i < numberOfEnemies; i++) {
 				if (enemyX[i] < 0) {
 					//Düsmanın x'i sıfırın altına indiyse başa alınır.
@@ -121,13 +131,13 @@ public class SurvivorBird extends ApplicationAdapter {
 			if (Gdx.input.justTouched()) gameState = GameState.start;
 		}
 		else if (gameState == GameState.end) {
-			font2.draw(batch, "Game over! Tap to play again.", width/5f,height/2f);
+			gameOverFont.draw(batch, "Game over! Tap to play again.", width/5f,height/2f);
 			if (Gdx.input.justTouched()) {
 				gameState = GameState.start;
 				setFirstValue();
 			}
 		}
-		font.draw(batch, String.valueOf(score), 100, 110);
+		scoreFont.draw(batch, String.valueOf(score), 100, 110);
 		batch.end();
 		birdCircle.set(birdX+width/28f, birdY+Gdx.graphics.getHeight() / 16.0f, heroWidth/3);
 		for ( int i = 0; i < numberOfEnemies; i++) {
@@ -142,6 +152,12 @@ public class SurvivorBird extends ApplicationAdapter {
 		batch.dispose();
 		bird.dispose();
 		background.dispose();
+		assetManager.dispose();
+		enemy1.dispose();
+		enemy2.dispose();
+		enemy3.dispose();
+		scoreFont.dispose();
+		gameOverFont.dispose();
 	}
 
 	private void setFirstValue() {
@@ -175,5 +191,27 @@ public class SurvivorBird extends ApplicationAdapter {
 				scoredEnemy=0;
 			}
 		}
+	}
+
+	private void chanceBackground() {
+		if (score >= 0 && score < 10) {
+			background = assetManager.get("background1.png", Texture.class);
+		}
+		else if (score >= 10 && score < 20) {
+			background = assetManager.get("background2.png", Texture.class);
+		}
+		else if (score >= 20 && score < 30) {
+			background = assetManager.get("background3.png", Texture.class);
+		}
+		else if (score >= 30 && score < 40) {
+			background = assetManager.get("background4.png", Texture.class);
+		}
+		else if (score >= 40 && score < 50) {
+			background = assetManager.get("background5.png", Texture.class);
+		}
+		else if (score >= 50) {
+			background = assetManager.get("background6.png", Texture.class);
+		}
+		batch.draw(background, 0,0, width, height);
 	}
 }
